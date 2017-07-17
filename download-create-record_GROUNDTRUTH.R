@@ -54,10 +54,10 @@ logan <- F
 # It is better to run only sections of this script at a time, since the classification process is manual and the script 
 # is just here to make classification streamlined, not entirely automated. 
 get.Google.image <- F # This controls whether the google images are downloaded. That process should only be done onces for each sample area (ref: "Get Google Imagery")
-save.rgb.pixel <- F  # Should the cropped 30x30 m RGB of the Google imagery be saved? Again, only needs to be done once. (ref: "Crop to 30x30 Meters")
-save.class.pixel <- F  # Should the classified image be saved to the image folder? Only save images once you have the classification you want. (ref: "Combine Covers")
-record.class.values <- F # Should the classified veg cover values be plugged into the dataframe? (ref: "Record Values" section)
-save.final.class.df <- F # Should the dataframe be saved? This should be done only once all the different images have been classified. (ref: "Save DF")
+save.rgb.pixel <- T  # Should the cropped 30x30 m RGB of the Google imagery be saved? Again, only needs to be done once. (ref: "Crop to 30x30 Meters")
+save.class.pixel <- T  # Should the classified image be saved to the image folder? Only save images once you have the classification you want. (ref: "Combine Covers")
+record.class.values <- T # Should the classified veg cover values be plugged into the dataframe? (ref: "Record Values" section)
+save.final.class.df <- T # Should the dataframe be saved? This should be done only once all the different images have been classified. (ref: "Save DF")
 clipParkRaster <- F
 
 # Classifier note: From here all the way down until the "START OF MANUAL CLASSIFICATION" section can be ran without any input.
@@ -70,11 +70,11 @@ clipParkRaster <- F
 # This allows different users to have different variable settings
 if(logan){
   # These variables will need to be changed as you move to new sample areas and/or parks.
-  park.section <- 10  # this is the section of the boundary file that you want your ground truth points to be created within
-  pixel.size.meters <- 30  # this shouldn't change. It is the length of one side of the area you want to classify. Typically will be set to landsat imagery resolution 
+  park.section <- 14  # this is the section of the boundary file that you want your ground truth points to be created within
+  pixel.size.meters <- 90  # this shouldn't change. It is the length of one side of the area you want to classify. Typically will be set to landsat imagery resolution 
   truth.num <- 50  # the total number of points to take from a GE image in the park.
   hand.truth.num <- 25  # the number of points to classify by hand. It can't go higher than truth.num
-  percent.park.classify.by.hand <- 0.75 # each park has multiple GE images covering it. Instead of putting points in each image, just put points in enough images to cover this fraction of the park.
+  percent.park.classify.by.hand <- 0.8 # each park has multiple GE images covering it. Instead of putting points in each image, just put points in enough images to cover this fraction of the park.
   park <- "Kruger"  # This is the folder name inside the working directory with all the files for the park
   park.boundary <- "Kruger_Boundary" # this is the simple outline of the park
   image.boundaries <- "Kruger_Boundary_GE_Buffers_excluded" # this is the boundary file that also has the boundaries of the google imagery
@@ -88,7 +88,7 @@ if(logan){
 if(ryan){
   # These variables will need to be changed as you move to new sample areas and/or parks.
   park.section <- 14  # this is the section of the boundary file that you want your ground truth points to be created within
-  pixel.size.meters <- 30  # this shouldn't change. It is the length of one side of the area you want to classify. Typically will be set to landsat imagery resolution 
+  pixel.size.meters <- 90  # this shouldn't change. It is the length of one side of the area you want to classify. Typically will be set to landsat imagery resolution 
   truth.num <- 50  # the total number of points to take from a GE image in the park.
   hand.truth.num <- 25  # the number of points to classify by hand. It can't go higher than truth.num
   percent.park.classify.by.hand <- 0.8 # each park has multiple GE images covering it. Instead of putting points in each image, just put points in enough images to cover this fraction of the park.
@@ -306,11 +306,11 @@ for(t in 1:length(google.boundary)){
       hand.images <- c(hand.images, image.name.new)
     }
     
-    # Create the hand image 30x30 rgb name list
-    rgb.3030.names <- c()
+    # Create the hand image 90x90 rgb name list
+    rgb.9090.names <- c()
     for(n in 1:length(hand.images)){
-      rgb.3030.name <- paste0(substr(hand.images[n], 1, nchar(hand.images[n]) - 4), "_3030_rgb.png")
-      rgb.3030.names <- c(rgb.3030.names, rgb.3030.name)
+      rgb.9090.name <- paste0(substr(hand.images[n], 1, nchar(hand.images[n]) - 4), "_9090_rgb.png")
+      rgb.9090.names <- c(rgb.9090.names, rgb.9090.name)
     }
     
     # Create the google image folders if not already done
@@ -376,8 +376,8 @@ for(t in 1:length(google.boundary)){
         # Crop the image (function in src_masterfunctions.R)
         img <- crop.google(image.name = hand.images[x], pixel.res = pixel.size.meters)
         
-        
-        png(rgb.3030.names[x]) # Save the image
+        # Save 90 by 90
+        png(rgb.9090.names[x]) # Save the image
         plotRGB(img, scale = 1)
         dev.off()
       }
@@ -388,18 +388,6 @@ for(t in 1:length(google.boundary)){
 
 
 #############################  START of MANUAL CLASSIFICATION  ###################################################
-image.num <- 1 # Manually set this as you go. It represents the point you are classifying. So will be in range of 1-50.
-# After the first point is classified, set this to 2, then 3 after that, and so on, until you hit 50. After 50, you're done!
-
-#############################  Image Check  ######################################################################
-# If the image has no ground truth points, this will tell you
-if(google.boundary$Inclusion[park.section] == "Included"){
-  print("This image has ground truth points; proceed with classification!")
-} else {
-  print("This image does not have ground truth points; move on to the next image.")
-}
-
-#############################  Index Calculations  ###############################################################
 # Get the portion of the pixel.num.df that is relevant to this section
 cellnums.df <- pixel.num.df[pixel.num.df$Section == park.section, ]
 
@@ -411,15 +399,29 @@ for(y in 1:hand.truth.num){
   hand.images <- c(hand.images, image.name.new)
 }
 
-# Create the hand image 30x30 rgb name list again 
-rgb.3030.names <- c()
+# Create the hand image 90x90 rgb name list
+rgb.9090.names <- c()
 for(n in 1:length(hand.images)){
-  rgb.3030.name <- paste0(substr(hand.images[n], 1, nchar(hand.images[n]) - 4), "_3030_rgb.png")
-  rgb.3030.names <- c(rgb.3030.names, rgb.3030.name)
+  rgb.9090.name <- paste0(substr(hand.images[n], 1, nchar(hand.images[n]) - 4), "_9090_rgb.png")
+  rgb.9090.names <- c(rgb.9090.names, rgb.9090.name)
 }
 
+#############################  Image Check  ######################################################################
+# If the image has no ground truth points, this will tell you
+if(google.boundary$Inclusion[park.section] == "Include"){
+  print("This image has ground truth points; proceed with classification!")
+} else {
+  print("This image does not have ground truth points; move on to the next image.")
+}
+
+#############################  Select Ground Truth Image Number  #############################################################
+image.num <- 1 # Manually set this as you go. It represents the point you are classifying. So will be in range of 1-50.
+# After the first point is classified, set this to 2, then 3 after that, and so on, until you hit 50. After 50, you're done!
+
+
+#############################  Index Calculations  ###############################################################
 # Read in the single cell and landscape images
-current.png <- readPNG(rgb.3030.names[image.num])
+current.png <- readPNG(rgb.9090.names[image.num])
 landscape.png <- readPNG(hand.images[image.num])
 
 # Pull out the red, green and blue bands from both images
@@ -449,6 +451,10 @@ bright <- red.c + green.c + blue.c
 bright.area <- bright > 2
 bright.frac <- length(bright.area[bright.area == 1]) / length(bright.area)
 
+# Mean brightness and GRVI
+mean.bright <- cellStats(bright, "mean")
+mean.grvi <- cellStats(grvd.pre, "mean")
+
 
 # Look at pixels with higher red values than green
 red.area <- red.c > green.c
@@ -470,10 +476,11 @@ red.frac <- length(red.area[red.area == 1]) / length(red.area)
 # First, plot the image of the overall area with the cell overlaid
 plotRGB(landscape.stack, scale = 1)
 plot(cell.poly, add = TRUE)
+plotRGB(rgb.stack, scale = 1)
 
 # Do trees, then grass. Soil will automatically be calculated after grass (soil = remaining pixels)
 # TREES 
-tree.bright.thresh <- 1.4  # Change this setting until you like the tree cover 
+tree.bright.thresh <- 1.31  # Change this setting until you like the tree cover 
 trees <- sum.im.pre < tree.bright.thresh
 tree.equation <- paste0("sum.im.pre < ", tree.bright.thresh)
 # Compare classification to image
@@ -496,8 +503,8 @@ sum.im <- holy.image.3
 
 # GRASS
 # Split soil and grass using GRVD and brightness. Soil is nonveg and bright
-grass.bright.thresh <- 2.1
-grass.grvd.thresh <- -0.05
+grass.bright.thresh <- 2.22
+grass.grvd.thresh <- -0.07
 grass <-  sum.im < grass.bright.thresh & grvd > grass.grvd.thresh
 grass.equation <- paste0("sum.im < ", grass.bright.thresh, " & grvd > ", grass.grvd.thresh)
 
@@ -527,7 +534,6 @@ tree.ad <- trees
 tree.ad[tree.ad == 1] <- 3
 tree.ad[is.na(tree.ad)] <- 0
 
-
 # Combine
 tot.img <- tree.ad + soil.ad + grass.ad
 tot.img[tot.img == 0] <- NA
@@ -542,9 +548,9 @@ plot(tot.img, axes=F,box = F, main = "3 = Trees, 2 = Grass, 1 = Soil")
 
 # Plot and save final classification (if wanted)
 if(save.class.pixel){ # This will overwrite already existing files (the creation date and time doesn't change, though)
-  class.3030.name <- paste0(substr(hand.images[x], 1, nchar(hand.images[x]) - 4), "_3030_classified.png")
+  class.9090.name <- paste0(substr(hand.images[x], 1, nchar(hand.images[x]) - 4), "_9090_classified.png")
   # Save the image
-  png(class.3030.name)
+  png(class.9090.name)
   plot(tot.img, axes=F,box = F, main = "3 = Trees, 2 = Grass, 1 = Soil")
   dev.off()
 }
@@ -562,7 +568,6 @@ tot.cells <- ncell(tot.img)
 p.tree <- tr.cells / tot.cells
 p.grass <- gr.cells / tot.cells
 p.soil <- sl.cells / tot.cells
-
 
 # Define majority cover for Google classification
 if(p.tree > p.grass & p.tree > p.soil){
@@ -590,6 +595,8 @@ if(record.class.values){
   hand.truth.df$grass.grvd.thresh[image.num] <- grass.grvd.thresh
   hand.truth.df$bright.frac[image.num] <- bright.frac
   hand.truth.df$red.frac[image.num] <- red.frac
+  hand.truth.df$mean.bright[image.num] <- mean.bright
+  hand.truth.df$mean.grvi[image.num] <- mean.grvi
   # Add the a flag if the pixel had water in it (1), otherwise set to zero
   if(water.was.present){
     hand.truth.df$water.flag[image.num] <- 1
@@ -598,8 +605,12 @@ if(record.class.values){
 
 #############################  Plot the Current Data  ###########################################################
 # Hopefully clusters in the data will be forming in these plots as numbers of plotted points gets closer to 25
+par(mar=c(5,5,4,2))
 plot(hand.truth.df$red.frac, hand.truth.df$tree.bright.thresh, main = "Red Fraction vs. Tree Brightness Threshold")
 plot(hand.truth.df$bright.frac, hand.truth.df$tree.bright.thresh, main = "Brightness Fraction vs. Tree Brightness Threshold")
+plot(hand.truth.df$mean.bright, hand.truth.df$tree.bright.thresh, main = "Mean Brightness vs. Tree Brightness Threshold")
+plot(hand.truth.df$mean.grvi, hand.truth.df$tree.bright.thresh, main = "Mean GRVI vs. Tree Brightness Threshold")
+
 
 
 #############################  Save DF  ##########################################################################
