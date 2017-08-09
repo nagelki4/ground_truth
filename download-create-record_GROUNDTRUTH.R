@@ -45,8 +45,8 @@ library(sp)
 
 #################################  Switches  ##############################################################
 # Select user
-ryan <- T
-logan <- F
+ryan <- F
+logan <- T
 
 # These control various parts of the code and whether they execute. 
 # If all are set to false, then nothing gets recorded or saved if the entire script is ran. That is good for when just trying to learn the code.
