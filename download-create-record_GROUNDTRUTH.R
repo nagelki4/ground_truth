@@ -58,7 +58,8 @@ save.rgb.pixel <- T  # Should the cropped 30x30 m RGB of the Google imagery be s
 save.class.pixel <- T  # Should the classified image be saved to the image folder? Only save images once you have the classification you want. (ref: "Combine Covers")
 record.class.values <- T # Should the classified veg cover values be plugged into the dataframe? (ref: "Record Values" section)
 save.final.class.df <- T # Should the dataframe be saved? This should be done only once all the different images have been classified. (ref: "Save DF")
-clipParkRaster <- F
+clipParkRaster <- F  # Clipping the backdrop raster using the park outline takes a lot of time. Set this to false if it's already been done. 
+GEE_image <- F  # This should be true if the backdrop raster image used for creating the points is a tif exported from Google Earth Engine. It lets the raster get shifted by 15m
 
 # Classifier note: From here all the way down until the "START OF MANUAL CLASSIFICATION" section can be ran without any input.
 # Just make sure "get.Google.image" and "save.rgb.pixel" are set to false if the imagery is already downloaded. Otherwise it 
@@ -131,6 +132,9 @@ auto.truth.df <- as.data.frame(mx)
 ###### Read in Landsat and shapefiles
 # Landsat
 landsat.image <- raster(landsat.image)
+if(GEE_image){
+  landsat.image <- shift(landsat.image, 15, 15) # Google Earth Engine (GEE) shifts the cells for some reason, so this shifts them back
+}
 
 # Shapefiles
 google.boundary <- readOGR("./gis", image.boundaries)
